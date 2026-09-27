@@ -44,6 +44,9 @@ If you're a developer and want to build it from scratch:
 2. Open the Developer Command Prompt.
 3. Run `build.bat` and let it do its thing.
 
+## Downloading a Fresh Windows Build
+Open the [Build RoPilot (Windows) workflow](../../actions/workflows/windows-build.yml) and select the latest successful run. Download its `RoPilot-Windows-x86` artifact, extract it, and keep `RoPilot.exe` and `WebView2Loader.dll` in the same folder. The workflow builds the current source, including Join Friend; the executable in older release ZIPs does not include those changes.
+
 ## VirusTotal & False Positives
 You can check out the latest VirusTotal scan for the executable here: **[VirusTotal Scan Results](https://www.virustotal.com/gui/file/3eec35dd66983ea9d4d92fa69ed05b3824bbc0c5df83f4578343edb89ba8c83b)**
 

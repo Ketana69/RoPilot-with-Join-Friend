@@ -1,0 +1,58 @@
+name: Build RoPilot (Windows)
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Prepare WebView2 x86 loader
+        shell: pwsh
+        run: |
+          $version = '1.0.4191.47'
+          $package = Join-Path $env:RUNNER_TEMP 'WebView2.zip'
+          $sdk = Join-Path $env:RUNNER_TEMP 'WebView2'
+          $url = "https://api.nuget.org/v3-flatcontainer/microsoft.web.webview2/$version/microsoft.web.webview2.$version.nupkg"
+          Invoke-WebRequest -Uri $url -OutFile $package
+          $expectedHash = 'F492BBF547D0DA329553B6727435B677579B1E9F91CC9E4A1AD029366D5F23D0'
+          if ((Get-FileHash $package -Algorithm SHA256).Hash -ne $expectedHash) {
+            throw 'WebView2 SDK package hash mismatch.'
+          }
+          Expand-Archive -LiteralPath $package -DestinationPath $sdk
+          Copy-Item -LiteralPath (Join-Path $sdk 'build/native/x86/WebView2Loader.dll.lib') -Destination 'vendor/WebView2Loader.dll.lib'
+          Copy-Item -LiteralPath (Join-Path $sdk 'build/native/x86/WebView2Loader.dll') -Destination 'WebView2Loader.dll' -Force
+
+      - name: Find MSVC x86 build tools
+        shell: pwsh
+        run: |
+          $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio/Installer/vswhere.exe'
+          $installation = & $vswhere -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+          if (-not $installation) { throw 'MSVC x86 build tools were not found.' }
+          $vcvars = Join-Path $installation.Trim() 'VC/Auxiliary/Build/vcvars32.bat'
+          if (-not (Test-Path -LiteralPath $vcvars)) { throw "Missing $vcvars" }
+          "VCVARS32=$vcvars" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Build RoPilot
+        shell: cmd
+        run: |
+          if exist RoPilot.exe del RoPilot.exe
+          call "%VCVARS32%"
+          if errorlevel 1 exit /b 1
+          call build.bat
+
+      - name: Upload Windows executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: RoPilot-Windows-x86
+          path: |
+            RoPilot.exe
+            WebView2Loader.dll
+            LICENSE
+          if-no-files-found: error
