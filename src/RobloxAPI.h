@@ -26,7 +26,7 @@ namespace RobloxAPI {
     bool Unfriend(const std::string& cookie, const std::string& friendId, std::string& outError);
 
     // Get Presence using own cookie
-    bool GetPresence(const std::string& cookie, const std::string& userId, std::string& outJobId, int& outPresenceType);
+    bool GetPresence(const std::string& cookie, const std::string& userId, std::string& outJobId, int& outPresenceType, std::string* outPlaceId = nullptr);
 
         struct AccountOverviewData {
         std::string Username;

@@ -347,7 +347,7 @@ namespace RobloxAPI {
     }
 
 
-    bool GetPresence(const std::string& cookie, const std::string& userId, std::string& outJobId, int& outPresenceType) {
+    bool GetPresence(const std::string& cookie, const std::string& userId, std::string& outJobId, int& outPresenceType, std::string* outPlaceId) {
         std::string csrf = GetCSRFToken(cookie);
         std::string headers = "x-csrf-token: " + csrf + "\r\nContent-Type: application/json\r\n";
         std::string body = "{\"userIds\": [" + userId + "]}";
@@ -361,6 +361,12 @@ namespace RobloxAPI {
                 auto presence = j["userPresences"][0];
                 outPresenceType = presence.value("userPresenceType", 0);
                 outJobId = presence.value("gameId", "");
+                if (outPlaceId) {
+                    *outPlaceId = "";
+                    if (presence.contains("placeId") && presence["placeId"].is_number_integer()) {
+                        *outPlaceId = std::to_string(presence["placeId"].get<long long>());
+                    }
+                }
                 if (outJobId.empty()) {
                     outJobId = "";
                 }

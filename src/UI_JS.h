@@ -1324,7 +1324,7 @@ window.onLowestServerResult = function (data) {
     }
 };
 
-window.launchAccount = function (cookie, username, btnElement, passedJobId) {
+window.launchAccount = function (cookie, username, btnElement, passedJobId, passedPlaceId) {
     if (btnElement) {
         btnElement.innerHTML =
             '<svg class="spinner" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><path d="M21 12a9 9 0 1 1-6.219-8.56"></path></svg>';
@@ -1352,7 +1352,9 @@ window.launchAccount = function (cookie, username, btnElement, passedJobId) {
     let hasGlobalTarget = !!(globalGameId || globalPsLink);
 
     // 1. Resolve Target Game (Place ID & Private Server Link)
-    if (gcfg && gcfg.ForceOverride && hasGroupTarget) {
+    if (passedJobId && passedPlaceId) {
+        gameId = passedPlaceId;
+    } else if (gcfg && gcfg.ForceOverride && hasGroupTarget) {
         gameId = gcfg.PlaceId || "";
         psLink = gcfg.PrivateServerLink || "";
     } else if (hasIndividualTarget) {
@@ -4243,10 +4245,18 @@ function renderFriendsList() {
                             <div style="color: var(--text-muted); font-size: 13px;">ID: ${f.id}</div>
                         </div>
                     </div>
-                    <button class="btn-icon danger btn-unfriend-single" onclick="promptUnfriend(${f.id})" title="${isId ? "Hapus" : "Remove"}" style="flex-shrink: 0; padding: 6px; border-radius: 8px;">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="23" y1="11" x2="17" y2="11"></line></svg>
-                    </button>
+                    <div class="btn-unfriend-single" style="flex-shrink: 0; white-space: nowrap;">
+                        <button type="button" class="btn-remove btn-join-friend" style="padding: 6px 10px; margin-right: 8px; border-radius: 8px;">${isId ? "Gabung" : "Join"}</button>
+                        <button class="btn-icon danger" onclick="promptUnfriend(${f.id})" title="${isId ? "Hapus" : "Remove"}" style="flex-shrink: 0; padding: 6px; border-radius: 8px; vertical-align: middle;">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="23" y1="11" x2="17" y2="11"></line></svg>
+                        </button>
+                    </div>
                 `;
+
+        div.querySelector(".btn-join-friend").addEventListener("click", (e) => {
+            e.stopPropagation();
+            window.joinFriend(f.id, e.currentTarget);
+        });
 
         let cb = div.querySelector(".social-checkbox");
         cb.addEventListener("change", (e) => {
@@ -4270,6 +4280,41 @@ function renderFriendsList() {
 
     updateBulkExecuteButton();
 }
+
+window.joinFriend = function (friendId, button) {
+    const account = currentAccounts.find((acc) => acc.Cookie === currentUtilityCookie);
+    if (!account) {
+        const isId = document.getElementById("setting-language")?.value === "id";
+        window.showStatus(isId ? "Akun yang dikelola tidak tersedia." : "Managed account is unavailable.", true);
+        return;
+    }
+    button.disabled = true;
+    button.textContent = document.getElementById("setting-language")?.value === "id" ? "Memeriksa" : "Checking";
+    window.chrome.webview.postMessage(JSON.stringify({
+        action: "get_friend_presence",
+        cookie: account.Cookie,
+        friendId: String(friendId),
+    }));
+};
+
+window.onFriendPresenceResult = function (data) {
+    if (data.cookie !== currentUtilityCookie) return;
+    const button = document.getElementById(`friend-item-${data.friendId}`)?.querySelector(".btn-join-friend");
+    if (!button || !button.disabled) return;
+    button.disabled = false;
+    button.textContent = document.getElementById("setting-language")?.value === "id" ? "Gabung" : "Join";
+
+    const isId = document.getElementById("setting-language")?.value === "id";
+    if (!data.success) {
+        window.showStatus(isId ? "Gagal memeriksa status teman." : "Could not check friend's presence.", true);
+    } else if (data.presenceType !== 2 || !data.jobId || !data.placeId || data.placeId === "0") {
+        window.showStatus(isId ? "Teman tidak sedang dalam game yang bisa diikuti." : "Friend is not in a joinable game.", true);
+    } else {
+        const account = currentAccounts.find((acc) => acc.Cookie === data.cookie);
+        if (account) window.launchAccount(account.Cookie, account.Username, null, data.jobId, data.placeId);
+        else window.showStatus(isId ? "Akun yang dikelola tidak tersedia." : "Managed account is unavailable.", true);
+    }
+};
 
 window.filterFriends = function (query) {
     query = query.toLowerCase();
