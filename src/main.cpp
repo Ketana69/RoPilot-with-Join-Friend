@@ -160,7 +160,7 @@ void AddTrayIcon(HWND hWnd) {
         g_nid.hIcon = LoadIcon(GetModuleHandle(NULL), MAKEINTRESOURCE(1));
         if (!g_nid.hIcon) g_nid.hIcon = LoadIcon(NULL, IDI_APPLICATION);
     }
-    wcscpy_s(g_nid.szTip, L"RoPilot");
+    wcscpy_s(g_nid.szTip, L"iliketosmile");
     Shell_NotifyIconW(NIM_ADD, &g_nid);
 }
 
@@ -1579,8 +1579,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
             if (!g_hasShownTrayNotification) {
                 g_hasShownTrayNotification = true;
                 g_nid.uFlags = NIF_INFO;
-                wcscpy_s(g_nid.szInfo, L"To fully close the app, right-click the RoPilot icon in your system tray and select Exit.");
-                wcscpy_s(g_nid.szInfoTitle, L"RoPilot is still running");
+                wcscpy_s(g_nid.szInfo, L"To fully close the app, right-click the iliketosmile icon in your system tray and select Exit.");
+                wcscpy_s(g_nid.szInfoTitle, L"iliketosmile is still running");
                 g_nid.dwInfoFlags = NIIF_INFO;
                 Shell_NotifyIconW(NIM_MODIFY, &g_nid);
                 g_nid.uFlags = NIF_ICON | NIF_MESSAGE | NIF_TIP;
@@ -1646,7 +1646,7 @@ int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmd
 
         HANDLE hMutex = CreateMutexW(NULL, TRUE, L"RoPilot_SingleInstance_Mutex");
         if (GetLastError() == ERROR_ALREADY_EXISTS) {
-            HWND existingWnd = FindWindowW(L"MultiRobloxClass", L"RoPilot");
+            HWND existingWnd = FindWindowW(L"MultiRobloxClass", L"iliketosmile");
             if (existingWnd) {
                 ShowWindow(existingWnd, SW_RESTORE);
                 SetForegroundWindow(existingWnd);
@@ -1724,7 +1724,7 @@ int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmd
     int xPos = (screenW - winW) / 2;
     int yPos = (screenH - winH) / 2;
 
-    g_hWnd = CreateWindowExW(WS_EX_LAYERED, L"MultiRobloxClass", L"RoPilot", 
+    g_hWnd = CreateWindowExW(WS_EX_LAYERED, L"MultiRobloxClass", L"iliketosmile",
         WS_POPUP | WS_CAPTION | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_SYSMENU | WS_THICKFRAME, xPos, yPos, winW, winH, 
         nullptr, nullptr, hInstance, nullptr);
 

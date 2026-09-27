@@ -22,12 +22,7 @@ constexpr const char* UI_BODY = R"HTML(
             style="margin-right: 4px"
             id="titlebar-icon"
         />
-        <span
-            ><strong style="font-weight: 700; font-size: 13px; letter-spacing: -0.2px">RoPilot</strong
-            ><span style="color: var(--text-muted); font-size: 11px; margin-left: 8px; font-weight: 500"
-                >v1.0.5 by NotVeen</span
-            ></span
-        >
+        <span><strong style="font-weight: 700; font-size: 13px; letter-spacing: -0.2px">iliketosmile</strong></span>
     </div>
     <div class="drag-area" id="drag-area"></div>
     <div class="titlebar-controls">
@@ -163,23 +158,6 @@ constexpr const char* UI_BODY = R"HTML(
                 <path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3"></path>
             </svg>
             <span class="nav-text" data-i18n="nav_analytics">Analytics</span>
-        </div>
-        <div class="nav-item" id="nav-webhook">
-            <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                style="flex-shrink: 0"
-            >
-                <path d="M18 16.98h-5.99c-1.1 0-1.95.94-2.48 1.9A4 4 0 0 1 2 17c0-2.21 1.79-4 4-4h1"></path>
-                <path d="M6 7.02h5.99c1.1 0 1.95-.94 2.48-1.9A4 4 0 0 1 22 7c0 2.21-1.79 4-4 4h-1"></path>
-            </svg>
-            <span class="nav-text" data-i18n="nav_webhook">Webhook</span>
         </div>
         <div class="nav-item" id="nav-settings">
             <svg
