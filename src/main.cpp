@@ -523,6 +523,27 @@ void ProcessWebMessage(const std::string& msg) {
                 }
             }).detach();
         }
+        else if (action == "get_friend_presence") {
+            std::string cookie = j.value("cookie", "");
+            std::string friendId = j.value("friendId", "");
+            bool managedAccount = false;
+            for (const auto& acc : g_accountManager.GetAccounts()) {
+                if (acc.Cookie == cookie) { managedAccount = true; break; }
+            }
+            std::thread([cookie, friendId, managedAccount]() {
+                std::string jobId, placeId;
+                int presenceType = 0;
+                bool success = managedAccount && !friendId.empty() &&
+                    friendId.find_first_not_of("0123456789") == std::string::npos &&
+                    RobloxAPI::GetPresence(cookie, friendId, jobId, presenceType, &placeId);
+                json result = {
+                    {"cookie", cookie}, {"friendId", friendId}, {"success", success},
+                    {"presenceType", presenceType}, {"jobId", jobId}, {"placeId", placeId}
+                };
+                std::string js = "if(window.onFriendPresenceResult) window.onFriendPresenceResult(" + result.dump() + ");";
+                PostMessage(g_hWnd, WM_APP + 3, (WPARAM)new std::string(js), 0);
+            }).detach();
+        }
         else if (action == "get_thumbnails") {
             std::string cookie = j.value("cookie", "");
             std::string userIds = j.value("userIds", "");
