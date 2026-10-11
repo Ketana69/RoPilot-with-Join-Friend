@@ -441,6 +441,9 @@ namespace Launcher {
         fs::path rp(robloxPath);
         std::string workDir = rp.parent_path().string();
 
+        // Allow a manually launched Roblox client to stay open alongside this account.
+        HandleCloser::CloseRobloxHandles();
+
         if (!CreateProcessA(NULL, cmdLineMutable.data(), NULL, NULL, FALSE, 0, NULL, workDir.c_str(), &si, &pi)) {
             std::cerr << "CreateProcess failed (" << GetLastError() << ").\n";
             return false;
