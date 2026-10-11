@@ -1659,7 +1659,11 @@ int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmd
             g_showChangelog = true;
         }
 
-        Apply773Fix();
+        // The exclusive cookie-file lock can prevent the Roblox app from saving its login.
+        // Keep the old workaround available for users who explicitly need it.
+        if (lpCmdLine && wcsstr(lpCmdLine, L"--legacy-773-fix") != nullptr) {
+            Apply773Fix();
+        }
 
         Launcher::InitializeMultiInstance();
 
