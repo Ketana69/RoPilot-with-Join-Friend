@@ -374,7 +374,7 @@ void ProcessWebMessage(const std::string& msg) {
         std::string action = j.value("action", "");
         
         if (action == "add_browser") {
-            BrowserLogin::OpenLoginBrowser(g_webviewEnv.Get(), [](const std::string& cookie) {
+            BrowserLogin::OpenLoginBrowser([](const std::string& cookie) {
                 if (!cookie.empty()) {
                     if (g_accountManager.AddAccount(cookie)) {
                         std::string username = "Account";
