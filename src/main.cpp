@@ -107,6 +107,7 @@ ComPtr<ICoreWebView2> g_webview;
 ComPtr<ICoreWebView2Environment> g_webviewEnv;
 
 void UpdateUI();
+bool ProtectRobloxLogin();
 
 #define WM_TRAYICON (WM_USER + 1)
 NOTIFYICONDATAW g_nid = { 0 };
@@ -786,7 +787,15 @@ void ProcessWebMessage(const std::string& msg) {
                 std::string launchError;
                 DWORD outPID = 0;
                 std::string resolvedPlaceId = "";
-                if (Launcher::LaunchAccount(cookie, placeId, linkCode, jobId, launchError, outPID, lowestGraphics, fflagOpt, &resolvedPlaceId)) {
+                bool loginProtected = false;
+                for (int attempt = 0; attempt < 10 && !loginProtected; ++attempt) {
+                    if (attempt > 0) Sleep(100);
+                    loginProtected = ProtectRobloxLogin();
+                }
+                if (!loginProtected) {
+                    launchError = "Roblox login data is busy. Please try again in a moment.";
+                }
+                if (loginProtected && Launcher::LaunchAccount(cookie, placeId, linkCode, jobId, launchError, outPID, lowestGraphics, fflagOpt, &resolvedPlaceId)) {
                     g_accountManager.UpdateAccountProcess(cookie, 2, outPID);
 
                     std::string userIdStr = "";
@@ -1625,6 +1634,30 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 }
 
 HANDLE g_h773Lock = INVALID_HANDLE_VALUE;
+HANDLE g_hAppStorageLock = INVALID_HANDLE_VALUE;
+
+bool ProtectRobloxLogin() {
+    char localAppData[MAX_PATH];
+    if (FAILED(SHGetFolderPathA(NULL, CSIDL_LOCAL_APPDATA, NULL, 0, localAppData))) return false;
+    std::string localStorage = std::string(localAppData) + "\\Roblox\\LocalStorage\\";
+
+    auto lockForReading = [](const std::string& path, HANDLE& handle) -> bool {
+        if (handle != INVALID_HANDLE_VALUE) return true;
+        DWORD attributes = GetFileAttributesA(path.c_str());
+        if (attributes == INVALID_FILE_ATTRIBUTES) {
+            DWORD error = GetLastError();
+            return error == ERROR_FILE_NOT_FOUND || error == ERROR_PATH_NOT_FOUND;
+        }
+        if (attributes & FILE_ATTRIBUTE_DIRECTORY) return false;
+        handle = CreateFileA(path.c_str(), GENERIC_READ, FILE_SHARE_READ, NULL,
+            OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+        return handle != INVALID_HANDLE_VALUE;
+    };
+
+    // Roblox can read its saved login, while managed launches cannot replace it.
+    return lockForReading(localStorage + "appStorage.json", g_hAppStorageLock) &&
+        lockForReading(localStorage + "RobloxCookies.dat", g_h773Lock);
+}
 
 void Apply773Fix() {
     char localAppData[MAX_PATH];
