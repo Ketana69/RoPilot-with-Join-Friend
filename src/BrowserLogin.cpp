@@ -11,6 +11,7 @@ using namespace Microsoft::WRL;
 namespace BrowserLogin {
 
     HWND g_hWnd = NULL;
+    ComPtr<ICoreWebView2Environment> loginEnvironment;
     ComPtr<ICoreWebView2Controller> webviewController;
     ComPtr<ICoreWebView2> webview;
     std::function<void(const std::string&)> g_onCookieFound;
@@ -120,6 +121,7 @@ namespace BrowserLogin {
                 }
                 webviewController = nullptr;
                 webview = nullptr;
+                loginEnvironment = nullptr;
                 g_hWnd = NULL;
                 break;
             default:
@@ -128,8 +130,11 @@ namespace BrowserLogin {
         return 0;
     }
 
-    void OpenLoginBrowser(ICoreWebView2Environment* env, std::function<void(const std::string&)> onCookieFound) {
-        if (!env) return;
+    void OpenLoginBrowser(std::function<void(const std::string&)> onCookieFound) {
+        if (g_hWnd && IsWindow(g_hWnd)) {
+            SetForegroundWindow(g_hWnd);
+            return;
+        }
         {
             std::lock_guard<std::mutex> lock(g_cookieMutex);
             g_onCookieFound = onCookieFound;
@@ -147,18 +152,30 @@ namespace BrowserLogin {
 
         g_hWnd = CreateWindowW(L"WebView2LoginClass", L"Roblox Login", WS_OVERLAPPEDWINDOW,
             CW_USEDEFAULT, CW_USEDEFAULT, 800, 600, nullptr, nullptr, hInstance, nullptr);
+        HWND browserWindow = g_hWnd;
 
-        ShowWindow(g_hWnd, SW_SHOW);
-        UpdateWindow(g_hWnd);
+        ShowWindow(browserWindow, SW_SHOW);
+        UpdateWindow(browserWindow);
 
-        env->CreateCoreWebView2Controller(g_hWnd, Callback<ICoreWebView2CreateCoreWebView2ControllerCompletedHandler>(
-            [](HRESULT result, ICoreWebView2Controller* controller) -> HRESULT {
-                if (controller != nullptr) {
+        // Keep the login's cookies separate from the main app's WebView2 profile.
+        HRESULT createResult = CreateCoreWebView2EnvironmentWithOptions(nullptr, L"login_data", nullptr,
+            Callback<ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler>(
+                [browserWindow](HRESULT result, ICoreWebView2Environment* env) -> HRESULT {
+                    if (g_hWnd != browserWindow || !IsWindow(browserWindow)) return S_OK;
+                    if (FAILED(result) || !env) {
+                        PostMessage(browserWindow, WM_CLOSE, 0, 0);
+                        return S_OK;
+                    }
+                    loginEnvironment = env;
+                    env->CreateCoreWebView2Controller(browserWindow, Callback<ICoreWebView2CreateCoreWebView2ControllerCompletedHandler>(
+            [browserWindow](HRESULT result, ICoreWebView2Controller* controller) -> HRESULT {
+                if (g_hWnd != browserWindow || !IsWindow(browserWindow)) return S_OK;
+                if (SUCCEEDED(result) && controller != nullptr) {
                     webviewController = controller;
                     webviewController->get_CoreWebView2(&webview);
 
                     RECT bounds;
-                    GetClientRect(g_hWnd, &bounds);
+                    GetClientRect(browserWindow, &bounds);
                     webviewController->put_Bounds(bounds);
 
                     // Add NavigationCompleted listener to check for cookies
@@ -182,15 +199,20 @@ namespace BrowserLogin {
                     if (SUCCEEDED(webview->QueryInterface(IID_PPV_ARGS(&webview2_2)))) {
                         ComPtr<ICoreWebView2CookieManager> cookieManager;
                         webview2_2->get_CookieManager(&cookieManager);
-                        cookieManager->DeleteAllCookies();
+                        if (cookieManager) cookieManager->DeleteAllCookies();
                     }
 
                     // Start timer to check cookies every 500ms
-                    SetTimer(g_hWnd, 1001, 500, nullptr);
+                    SetTimer(browserWindow, 1001, 500, nullptr);
 
                     webview->Navigate(L"https://www.roblox.com/login");
+                } else {
+                    PostMessage(browserWindow, WM_CLOSE, 0, 0);
                 }
                 return S_OK;
             }).Get());
+                    return S_OK;
+                }).Get());
+        if (FAILED(createResult)) PostMessage(browserWindow, WM_CLOSE, 0, 0);
     }
 }

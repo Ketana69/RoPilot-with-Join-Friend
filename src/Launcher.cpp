@@ -222,18 +222,6 @@ namespace Launcher {
 
         ApplyFFlags(robloxPath, fflagOpt);
 
-        if (!IsAnyRobloxRunning()) {
-            char localPath[MAX_PATH];
-            if (SUCCEEDED(SHGetFolderPathA(NULL, CSIDL_LOCAL_APPDATA, NULL, 0, localPath))) {
-                fs::path rbxDir = fs::path(localPath) / "Roblox";
-                fs::path walPath = rbxDir / "rbx-storage.db-wal";
-                fs::path shmPath = rbxDir / "rbx-storage.db-shm";
-                std::error_code ec;
-                if (fs::exists(walPath, ec)) fs::remove(walPath, ec);
-                if (fs::exists(shmPath, ec)) fs::remove(shmPath, ec);
-            }
-        }
-
         std::string csrf = RobloxAPI::GetCSRFToken(cookie);
         if (csrf.empty()) {
             outError = "Failed to get CSRF token.";
@@ -373,7 +361,7 @@ namespace Launcher {
                 }
             } else {
                 if (!jobId.empty()) {
-                    uri += "+placelauncherurl:https%3A%2F%2Fassetgame.roblox.com%2Fgame%2FPlaceLauncher.ashx%3Frequest%3DRequestGameJob%26placeId%3D" + localPlaceId + "%26gameJobId%3D" + jobId + "%26isPlayTogetherGame%3Dfalse";
+                    uri += "+placelauncherurl:https%3A%2F%2Fassetgame.roblox.com%2Fgame%2FPlaceLauncher.ashx%3Frequest%3DRequestGameJob%26placeId%3D" + localPlaceId + "%26gameId%3D" + jobId + "%26isPlayTogetherGame%3Dfalse";
                 } else {
                     uri += "+placelauncherurl:https%3A%2F%2Fassetgame.roblox.com%2Fgame%2FPlaceLauncher.ashx%3Frequest%3DRequestGame%26placeId%3D" + localPlaceId + "%26isPlayTogetherGame%3Dfalse";
                 }
@@ -452,6 +440,9 @@ namespace Launcher {
 
         fs::path rp(robloxPath);
         std::string workDir = rp.parent_path().string();
+
+        // Allow a manually launched Roblox client to stay open alongside this account.
+        HandleCloser::CloseRobloxHandles();
 
         if (!CreateProcessA(NULL, cmdLineMutable.data(), NULL, NULL, FALSE, 0, NULL, workDir.c_str(), &si, &pi)) {
             std::cerr << "CreateProcess failed (" << GetLastError() << ").\n";

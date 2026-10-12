@@ -107,6 +107,7 @@ ComPtr<ICoreWebView2> g_webview;
 ComPtr<ICoreWebView2Environment> g_webviewEnv;
 
 void UpdateUI();
+bool ProtectRobloxLogin();
 
 #define WM_TRAYICON (WM_USER + 1)
 NOTIFYICONDATAW g_nid = { 0 };
@@ -160,7 +161,7 @@ void AddTrayIcon(HWND hWnd) {
         g_nid.hIcon = LoadIcon(GetModuleHandle(NULL), MAKEINTRESOURCE(1));
         if (!g_nid.hIcon) g_nid.hIcon = LoadIcon(NULL, IDI_APPLICATION);
     }
-    wcscpy_s(g_nid.szTip, L"RoPilot");
+    wcscpy_s(g_nid.szTip, L"iliketosmile");
     Shell_NotifyIconW(NIM_ADD, &g_nid);
 }
 
@@ -374,7 +375,7 @@ void ProcessWebMessage(const std::string& msg) {
         std::string action = j.value("action", "");
         
         if (action == "add_browser") {
-            BrowserLogin::OpenLoginBrowser(g_webviewEnv.Get(), [](const std::string& cookie) {
+            BrowserLogin::OpenLoginBrowser([](const std::string& cookie) {
                 if (!cookie.empty()) {
                     if (g_accountManager.AddAccount(cookie)) {
                         std::string username = "Account";
@@ -786,7 +787,15 @@ void ProcessWebMessage(const std::string& msg) {
                 std::string launchError;
                 DWORD outPID = 0;
                 std::string resolvedPlaceId = "";
-                if (Launcher::LaunchAccount(cookie, placeId, linkCode, jobId, launchError, outPID, lowestGraphics, fflagOpt, &resolvedPlaceId)) {
+                bool loginProtected = false;
+                for (int attempt = 0; attempt < 10 && !loginProtected; ++attempt) {
+                    if (attempt > 0) Sleep(100);
+                    loginProtected = ProtectRobloxLogin();
+                }
+                if (!loginProtected) {
+                    launchError = "Roblox login data is busy. Please try again in a moment.";
+                }
+                if (loginProtected && Launcher::LaunchAccount(cookie, placeId, linkCode, jobId, launchError, outPID, lowestGraphics, fflagOpt, &resolvedPlaceId)) {
                     g_accountManager.UpdateAccountProcess(cookie, 2, outPID);
 
                     std::string userIdStr = "";
@@ -1579,8 +1588,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
             if (!g_hasShownTrayNotification) {
                 g_hasShownTrayNotification = true;
                 g_nid.uFlags = NIF_INFO;
-                wcscpy_s(g_nid.szInfo, L"To fully close the app, right-click the RoPilot icon in your system tray and select Exit.");
-                wcscpy_s(g_nid.szInfoTitle, L"RoPilot is still running");
+                wcscpy_s(g_nid.szInfo, L"To fully close the app, right-click the iliketosmile icon in your system tray and select Exit.");
+                wcscpy_s(g_nid.szInfoTitle, L"iliketosmile is still running");
                 g_nid.dwInfoFlags = NIIF_INFO;
                 Shell_NotifyIconW(NIM_MODIFY, &g_nid);
                 g_nid.uFlags = NIF_ICON | NIF_MESSAGE | NIF_TIP;
@@ -1625,6 +1634,30 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 }
 
 HANDLE g_h773Lock = INVALID_HANDLE_VALUE;
+HANDLE g_hAppStorageLock = INVALID_HANDLE_VALUE;
+
+bool ProtectRobloxLogin() {
+    char localAppData[MAX_PATH];
+    if (FAILED(SHGetFolderPathA(NULL, CSIDL_LOCAL_APPDATA, NULL, 0, localAppData))) return false;
+    std::string localStorage = std::string(localAppData) + "\\Roblox\\LocalStorage\\";
+
+    auto lockForReading = [](const std::string& path, HANDLE& handle) -> bool {
+        if (handle != INVALID_HANDLE_VALUE) return true;
+        DWORD attributes = GetFileAttributesA(path.c_str());
+        if (attributes == INVALID_FILE_ATTRIBUTES) {
+            DWORD error = GetLastError();
+            return error == ERROR_FILE_NOT_FOUND || error == ERROR_PATH_NOT_FOUND;
+        }
+        if (attributes & FILE_ATTRIBUTE_DIRECTORY) return false;
+        handle = CreateFileA(path.c_str(), GENERIC_READ, FILE_SHARE_READ, NULL,
+            OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+        return handle != INVALID_HANDLE_VALUE;
+    };
+
+    // Roblox can read its saved login, while managed launches cannot replace it.
+    return lockForReading(localStorage + "appStorage.json", g_hAppStorageLock) &&
+        lockForReading(localStorage + "RobloxCookies.dat", g_h773Lock);
+}
 
 void Apply773Fix() {
     char localAppData[MAX_PATH];
@@ -1646,7 +1679,7 @@ int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmd
 
         HANDLE hMutex = CreateMutexW(NULL, TRUE, L"RoPilot_SingleInstance_Mutex");
         if (GetLastError() == ERROR_ALREADY_EXISTS) {
-            HWND existingWnd = FindWindowW(L"MultiRobloxClass", L"RoPilot");
+            HWND existingWnd = FindWindowW(L"MultiRobloxClass", L"iliketosmile");
             if (existingWnd) {
                 ShowWindow(existingWnd, SW_RESTORE);
                 SetForegroundWindow(existingWnd);
@@ -1659,7 +1692,11 @@ int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmd
             g_showChangelog = true;
         }
 
-        Apply773Fix();
+        // The exclusive cookie-file lock can prevent the Roblox app from saving its login.
+        // Keep the old workaround available for users who explicitly need it.
+        if (lpCmdLine && wcsstr(lpCmdLine, L"--legacy-773-fix") != nullptr) {
+            Apply773Fix();
+        }
 
         Launcher::InitializeMultiInstance();
 
@@ -1724,7 +1761,7 @@ int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmd
     int xPos = (screenW - winW) / 2;
     int yPos = (screenH - winH) / 2;
 
-    g_hWnd = CreateWindowExW(WS_EX_LAYERED, L"MultiRobloxClass", L"RoPilot", 
+    g_hWnd = CreateWindowExW(WS_EX_LAYERED, L"MultiRobloxClass", L"iliketosmile",
         WS_POPUP | WS_CAPTION | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_SYSMENU | WS_THICKFRAME, xPos, yPos, winW, winH, 
         nullptr, nullptr, hInstance, nullptr);
 

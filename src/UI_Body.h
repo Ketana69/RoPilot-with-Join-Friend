@@ -22,12 +22,7 @@ constexpr const char* UI_BODY = R"HTML(
             style="margin-right: 4px"
             id="titlebar-icon"
         />
-        <span
-            ><strong style="font-weight: 700; font-size: 13px; letter-spacing: -0.2px">RoPilot</strong
-            ><span style="color: var(--text-muted); font-size: 11px; margin-left: 8px; font-weight: 500"
-                >v1.0.5 by NotVeen</span
-            ></span
-        >
+        <span><strong style="font-weight: 700; font-size: 13px; letter-spacing: -0.2px">iliketosmile</strong></span>
     </div>
     <div class="drag-area" id="drag-area"></div>
     <div class="titlebar-controls">
@@ -164,43 +159,6 @@ constexpr const char* UI_BODY = R"HTML(
             </svg>
             <span class="nav-text" data-i18n="nav_analytics">Analytics</span>
         </div>
-        <div class="nav-item" id="nav-webhook">
-            <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                style="flex-shrink: 0"
-            >
-                <path d="M18 16.98h-5.99c-1.1 0-1.95.94-2.48 1.9A4 4 0 0 1 2 17c0-2.21 1.79-4 4-4h1"></path>
-                <path d="M6 7.02h5.99c1.1 0 1.95-.94 2.48-1.9A4 4 0 0 1 22 7c0 2.21-1.79 4-4 4h-1"></path>
-            </svg>
-            <span class="nav-text" data-i18n="nav_webhook">Webhook</span>
-        </div>
-        <div class="nav-item" id="nav-settings">
-            <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                style="flex-shrink: 0"
-            >
-                <circle cx="12" cy="12" r="3"></circle>
-                <path
-                    d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"
-                ></path>
-            </svg>
-            <span class="nav-text" data-i18n="nav_settings">Settings</span>
-        </div>
-
         <div class="sidebar-spacer"></div>
 
         <div style="position: relative; width: 100%">
